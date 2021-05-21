@@ -1,4 +1,4 @@
-#include "MemoryLoadLibrary.h"
+#include "MemoryLibrary.h"
 
 int main(int argc, char* argv[])
 {
@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     IMAGE_NT_HEADERS64* NT = RowImageBase + DOS->e_lfanew;
     ULONGLONG ImageBase;
 
-    if (!ImageBase = VirtualAlloc(NT->OptionalHeader.ImageBase, NT->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE))
+    if (!(ImageBase = VirtualAlloc(NT->OptionalHeader.ImageBase, NT->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)))
     {
         ImageBase = VirtualAlloc(NULL, NT->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     }
@@ -36,4 +36,16 @@ int main(int argc, char* argv[])
         return -1;
     }
     printf("[*] ImageBase : 0x%p\n", ImageBase);
+
+    memcpy(ImageBase, DOS, NT->OptionalHeader.SizeOfHeaders);
+    printf("[+] PE headers writing by %d Byte\n", NT->OptionalHeader.SizeOfHeaders);
+
+    IMAGE_SECTION_HEADER (*SECTION)[1] = RowImageBase + NT->OptionalHeader.SizeOfImage;
+    printf("[*] First section : 0x%p\n", SECTION);
+
+    for (int i = 0; i < NT->FileHeader.NumberOfSections; i++)
+    {
+        printf("[+] Section name : %s\n", SECTION[i]->Name);
+        memcmp(ImageBase + SECTION[i]->VirtualAddress, RowImageBase + SECTION[i]->PointerToRawData, SECTION[i]->SizeOfRawData);
+    }
 }
