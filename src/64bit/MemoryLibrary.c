@@ -47,5 +47,29 @@ int main(int argc, char* argv[])
     {
         printf("[+] Section name : %s\n", SECTION[i]->Name);
         memcmp(ImageBase + SECTION[i]->VirtualAddress, RowImageBase + SECTION[i]->PointerToRawData, SECTION[i]->SizeOfRawData);
+        printf("[+] Section mapping OK..!\n");
+    }
+
+    IMAGE_IMPORT_DESCRIPTOR (*IMPORT)[1] = ImageBase = NT->OptionalHeader.DataDirectory[1].VirtualAddress;
+    printf("[*] IAT Recovery\n");
+
+    for (int i = 0;; i++)
+    {
+        if (IMPORT[i]->OriginalFirstThunk == NULL)
+            break;
+
+        PSTR LibName = ImageBase + IMPORT[i]->Name;
+        printf("[+] Library name : %s\n", LibName);
+
+        HMODULE hModule;
+        if (!(hModule = GetModuleHandleA(LibName)))
+        {
+            hModule = LoadLibraryA(LibName);
+        }
+
+        for (int j = 0; IMPORT[i]->OriginalFirstThunk + 8 * j; j++)
+        {
+            printf("[+] Function name : %s\n", );
+        }
     }
 }
