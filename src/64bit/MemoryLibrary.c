@@ -69,7 +69,8 @@ int main(int argc, char* argv[])
 
         for (int j = 0; IMPORT[i]->OriginalFirstThunk + 8 * j; j++)
         {
-            printf("[+] Function name : %s\n", );
+            IMAGE_IMPORT_BY_NAME *IMPORT_NAME = ImageBase + *(ULONGLONG *)(IMPORT[i]->OriginalFirstThunk + 8 * j);
+            printf("[+] Function name : %s\n", IMPORT_NAME->Name);
         }
     }
 }
