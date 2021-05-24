@@ -71,6 +71,7 @@ int main(int argc, char* argv[])
         {
             IMAGE_IMPORT_BY_NAME *IMPORT_NAME = ImageBase + *(ULONGLONG *)(IMPORT[i]->OriginalFirstThunk + 8 * j);
             printf("[+] Function name : %s\n", IMPORT_NAME->Name);
+            *(ULONGLONG *)(IMPORT[i]->FirstThunk + 8 * j) = GetProcAddress(hModule, IMPORT_NAME->Name);
         }
     }
 }
