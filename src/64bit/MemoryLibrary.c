@@ -23,6 +23,7 @@ int main(int argc, char* argv[])
     IMAGE_DOS_HEADER* DOS = Buffer;
     IMAGE_NT_HEADERS64* NT = RowImageBase + DOS->e_lfanew;
     ULONGLONG ImageBase;
+    ULONGLONG OriginImageBase = NT->OptionalHeader.ImageBase;
 
     if (!(ImageBase = VirtualAlloc(NT->OptionalHeader.ImageBase, NT->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)))
     {
@@ -74,4 +75,61 @@ int main(int argc, char* argv[])
             *(ULONGLONG *)(IMPORT[i]->FirstThunk + 8 * j) = GetProcAddress(hModule, IMPORT_NAME->Name);
         }
     }
+
+    if (ImageBase != NT->OptionalHeader.ImageBase)
+    {
+        IMAGE_BASE_RELOCATION *BASE_RELOCATION = NULL;
+        for (int i = 0; i < NT->FileHeader.NumberOfSections; i++)
+        {
+            if (NT->OptionalHeader.DataDirectory[5].VirtualAddress == SECTION[i]->VirtualAddress)
+            {
+                BASE_RELOCATION = RowImageBase + SECTION[i]->PointerToRawData;
+                break;
+            }
+        }
+
+        DWORD SIZE_RELOCATION = NT->OptionalHeader.DataDirectory[5].Size;
+
+        if (BASE_RELOCATION == NULL | SIZE_RELOCATION == 0)
+        {
+            printf("[-] This DLL is not supported Relocation!\n");
+            return -1;
+        }
+
+        DWORD SIZE = 0;
+
+        while (SIZE != SIZE_RELOCATION)
+        {
+            BASE_RELOCATION_ENTRY (*Type)[1] = (ULONGLONG)BASE_RELOCATION + 8;
+            for (int i = 0; i < (BASE_RELOCATION->SizeOfBlock - 8) / 2; i++)
+            {
+                if ((*Type[i]).Offset != NULL)
+                {
+                    ULONGLONG *HardCodingAddress = ImageBase + BASE_RELOCATION->VirtualAddress + (*Type[i]).Offset;
+                    ULONGLONG HardCodingData = *HardCodingAddress;
+
+                    /*if (ReadProcessMemory(pi.hProcess, HardCodingAddress, &HardCodingData, 8, NULL) == NULL)
+                    {
+                        printf("[-] Reloc Read Failed!\n");
+                        continue;
+                    }*/
+
+                    printf("[+] 0x%p : 0x%p -> ", HardCodingAddress, HardCodingData);
+
+                    HardCodingData -= (ULONGLONG)OriginImageBase;
+                    HardCodingData += (ULONGLONG)ImageBase;
+
+                    printf("0x%p\n", HardCodingData);
+
+                    *HardCodingAddress = HardCodingData;
+                }
+            }
+
+            SIZE += BASE_RELOCATION->SizeOfBlock;
+            BASE_RELOCATION = (ULONGLONG)BASE_RELOCATION + BASE_RELOCATION->SizeOfBlock;
+        }
+    }
+
+    PVOID EntryPoint = ImageBase + NT->OptionalHeader.AddressOfEntryPoint;
+    
 }
