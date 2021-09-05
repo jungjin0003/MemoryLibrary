@@ -1,14 +1,8 @@
 #include "MemoryLibrary.h"
+#include "./CreateThread2/CreateThread2.h"
 
-int main(int argc, char* argv[])
+HMODULE MemoryLoadLibraryA(LPCSTR* DllName)
 {
-    char* DllName = "kernel32.dll";
-
-    if (argc > 1)
-    {
-        DllName = argv[1];
-    }
-
     printf("[+] File Name : %s\n", DllName);
 
     HANDLE hFile = CreateFileA(DllName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -41,17 +35,17 @@ int main(int argc, char* argv[])
     memcpy(ImageBase, DOS, NT->OptionalHeader.SizeOfHeaders);
     printf("[+] PE headers writing by %d Byte\n", NT->OptionalHeader.SizeOfHeaders);
 
-    IMAGE_SECTION_HEADER (*SECTION)[1] = RowImageBase + NT->OptionalHeader.SizeOfImage;
+    IMAGE_SECTION_HEADER (*SECTION)[1] = (ULONGLONG)NT + sizeof(IMAGE_NT_HEADERS64);
     printf("[*] First section : 0x%p\n", SECTION);
 
     for (int i = 0; i < NT->FileHeader.NumberOfSections; i++)
     {
         printf("[+] Section name : %s\n", SECTION[i]->Name);
-        memcmp(ImageBase + SECTION[i]->VirtualAddress, RowImageBase + SECTION[i]->PointerToRawData, SECTION[i]->SizeOfRawData);
+        memcpy(ImageBase + SECTION[i]->VirtualAddress, RowImageBase + SECTION[i]->PointerToRawData, SECTION[i]->SizeOfRawData);
         printf("[+] Section mapping OK..!\n");
     }
 
-    IMAGE_IMPORT_DESCRIPTOR (*IMPORT)[1] = ImageBase = NT->OptionalHeader.DataDirectory[1].VirtualAddress;
+    IMAGE_IMPORT_DESCRIPTOR (*IMPORT)[1] = ImageBase + NT->OptionalHeader.DataDirectory[1].VirtualAddress;
     printf("[*] IAT Recovery\n");
 
     for (int i = 0;; i++)
@@ -68,11 +62,21 @@ int main(int argc, char* argv[])
             hModule = LoadLibraryA(LibName);
         }
 
-        for (int j = 0; IMPORT[i]->OriginalFirstThunk + 8 * j; j++)
+        for (int j = 0;; j++)
         {
-            IMAGE_IMPORT_BY_NAME *IMPORT_NAME = ImageBase + *(ULONGLONG *)(IMPORT[i]->OriginalFirstThunk + 8 * j);
-            printf("[+] Function name : %s\n", IMPORT_NAME->Name);
-            *(ULONGLONG *)(IMPORT[i]->FirstThunk + 8 * j) = GetProcAddress(hModule, IMPORT_NAME->Name);
+            IMAGE_THUNK_DATA64 *THUNK = ImageBase + IMPORT[i]->OriginalFirstThunk + j * 8;
+
+            if (THUNK->u1.AddressOfData == NULL)
+                break;
+            
+            if (THUNK->u1.Ordinal > 0x80000000)
+                *(ULONGLONG *)(ImageBase + IMPORT[i]->FirstThunk + j * 8) = GetProcAddress(hModule, MAKEINTRESOURCEA(THUNK->u1.Ordinal));
+            else
+            {
+                IMAGE_IMPORT_BY_NAME *IMPORT_NAME = ImageBase + THUNK->u1.AddressOfData;
+                printf("[+] Function name : %s\n", IMPORT_NAME->Name);
+                *(ULONGLONG *)(ImageBase + IMPORT[i]->FirstThunk + j * 8) = GetProcAddress(hModule, IMPORT_NAME->Name);
+            }
         }
     }
 
@@ -132,4 +136,23 @@ int main(int argc, char* argv[])
 
     PVOID EntryPoint = ImageBase + NT->OptionalHeader.AddressOfEntryPoint;
     
+    printf("[*] EntryPoint : 0x%p\n", EntryPoint);
+
+    printf("[*] Create New Thread!\n");
+
+    DWORD TID;
+    HANDLE hThread = CreateThread2(NULL, NULL, EntryPoint, CREATE_SUSPENDED, &TID, 3, ImageBase, DLL_PROCESS_ATTACH, NULL);
+
+    if (hThread == NULL)
+    {
+        printf("[-] Failed create thread!\n");
+        return -1;
+    }
+
+    ResumeThread(hThread);
+
+    printf("[+] Thread handle : 0x%x\n", hThread);
+    printf("[+] ThreadId : %d\n", TID);
+
+    Sleep(3000);
 }
