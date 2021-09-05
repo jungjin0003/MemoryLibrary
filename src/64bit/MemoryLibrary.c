@@ -1,9 +1,9 @@
 #include "MemoryLibrary.h"
 #include "./CreateThread2/CreateThread2.h"
 
-HMODULE MemoryLoadLibraryA(LPCSTR* DllName)
+HMODULE MemoryLoadLibraryA(BYTE* MemoryStream)
 {
-    printf("[+] File Name : %s\n", DllName);
+    /*printf("[+] File Name : %s\n", DllName);
 
     HANDLE hFile = CreateFileA(DllName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     DWORD Size = GetFileSize(hFile, NULL);
@@ -11,10 +11,10 @@ HMODULE MemoryLoadLibraryA(LPCSTR* DllName)
 
     BYTE* Buffer = malloc(Size);
     ReadFile(hFile, Buffer, Size, &Size, NULL);
-    printf("[+] File Opening!\n");
+    printf("[+] File Opening!\n");*/
 
-    ULONGLONG RowImageBase = Buffer;
-    IMAGE_DOS_HEADER* DOS = Buffer;
+    ULONGLONG RowImageBase = MemoryStream;
+    IMAGE_DOS_HEADER* DOS = MemoryStream;
     IMAGE_NT_HEADERS64* NT = RowImageBase + DOS->e_lfanew;
     ULONGLONG ImageBase;
     ULONGLONG OriginImageBase = NT->OptionalHeader.ImageBase;
@@ -27,8 +27,7 @@ HMODULE MemoryLoadLibraryA(LPCSTR* DllName)
     if (ImageBase == NULL)
     {
         printf("[-] VirtualAlloc failed!!\n");
-        free(Buffer);
-        return -1;
+        return NULL;
     }
     printf("[*] ImageBase : 0x%p\n", ImageBase);
 
@@ -97,7 +96,8 @@ HMODULE MemoryLoadLibraryA(LPCSTR* DllName)
         if (BASE_RELOCATION == NULL | SIZE_RELOCATION == 0)
         {
             printf("[-] This DLL is not supported Relocation!\n");
-            return -1;
+            VirtualFree(ImageBase, MEM_RELEASE, 0);
+            return NULL;
         }
 
         DWORD SIZE = 0;
@@ -146,7 +146,8 @@ HMODULE MemoryLoadLibraryA(LPCSTR* DllName)
     if (hThread == NULL)
     {
         printf("[-] Failed create thread!\n");
-        return -1;
+        VirtualFree(ImageBase, MEM_RELEASE, 0);
+        return NULL;
     }
 
     ResumeThread(hThread);
@@ -154,5 +155,5 @@ HMODULE MemoryLoadLibraryA(LPCSTR* DllName)
     printf("[+] Thread handle : 0x%x\n", hThread);
     printf("[+] ThreadId : %d\n", TID);
 
-    Sleep(3000);
+    return (HMODULE)ImageBase;
 }
