@@ -1,7 +1,7 @@
 #include "MemoryLibrary.h"
 #include "./CreateThread2/CreateThread2.h"
 
-HMODULE MemoryLoadLibraryA(BYTE* MemoryStream)
+HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
 {
     /*printf("[+] File Name : %s\n", DllName);
 
