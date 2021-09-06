@@ -1,5 +1,4 @@
 #include "MemoryLibrary.h"
-#include "./CreateThread2/CreateThread2.h"
 
 FARPROC MemoryGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
 {
