@@ -127,7 +127,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
         if (BASE_RELOCATION == NULL | SIZE_RELOCATION == 0)
         {
             printf("[-] This DLL is not supported Relocation!\n");
-            VirtualFree(ImageBase, MEM_RELEASE, 0);
+            VirtualFree(ImageBase, 0, MEM_RELEASE);
             return NULL;
         }
 
@@ -177,7 +177,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
     if (hThread == NULL)
     {
         printf("[-] Failed create thread!\n");
-        VirtualFree(ImageBase, MEM_RELEASE, 0);
+        VirtualFree(ImageBase, 0, MEM_RELEASE);
         return NULL;
     }
 
