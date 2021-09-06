@@ -1,6 +1,24 @@
 #include "MemoryLibrary.h"
 #include "./CreateThread2/CreateThread2.h"
 
+FARPROC MemoryGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
+{
+    IMAGE_EXPORT_DIRECTORY *EXPORT = (ULONGLONG)hModule + ((IMAGE_NT_HEADERS64 *)((ULONGLONG)hModule + ((IMAGE_DOS_HEADER *)hModule)->e_lfanew))->OptionalHeader.DataDirectory[0].VirtualAddress;
+    LPSTR FunctionName = NULL;
+
+    for (int i = 0; i < EXPORT->NumberOfNames; i++)
+    {
+        FunctionName = (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfNames + i * 4);
+        if (strcmp(FunctionName, lpProcName) == 0)
+        {
+            DWORD Index = *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfNameOrdinals + i * 4);
+            return (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfFunctions + i * 4);
+        }
+    }
+
+    return NULL;
+}
+
 HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
 {
     /*printf("[+] File Name : %s\n", DllName);
@@ -15,7 +33,21 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
 
     ULONGLONG RowImageBase = MemoryStream;
     IMAGE_DOS_HEADER* DOS = MemoryStream;
+
+    if (DOS->e_magic != MZ)
+    {
+        printf("[-] This memory stream is not executable file!\n");
+        return NULL;
+    }
+
     IMAGE_NT_HEADERS64* NT = RowImageBase + DOS->e_lfanew;
+
+    if (NT->Signature != PE)
+    {
+        printf("[-] This memory stream is not PE format\n");
+        return NULL;
+    }
+
     ULONGLONG ImageBase;
     ULONGLONG OriginImageBase = NT->OptionalHeader.ImageBase;
 
