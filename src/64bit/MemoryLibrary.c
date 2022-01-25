@@ -166,7 +166,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
     printf("[*] Create New Thread!\n");
 
     DWORD TID;
-    HANDLE hThread = CreateThread2(NULL, NULL, EntryPoint, CREATE_SUSPENDED, &TID, 3, ImageBase, DLL_PROCESS_ATTACH, NULL);
+    HANDLE hThread = CreateThread2(NULL, NULL, EntryPoint, 0, &TID, 3, ImageBase, DLL_PROCESS_ATTACH, NULL);
 
     if (hThread == NULL)
     {
@@ -175,10 +175,10 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
         return NULL;
     }
 
-    ResumeThread(hThread);
-
     printf("[+] Thread handle : 0x%x\n", hThread);
     printf("[+] ThreadId : %d\n", TID);
+
+    WaitForSingleObject(hThread, INFINITE);
 
     return (HMODULE)ImageBase;
 }
