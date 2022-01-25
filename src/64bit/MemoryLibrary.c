@@ -10,8 +10,8 @@ FARPROC MemoryGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
         FunctionName = (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfNames + i * 4);
         if (strcmp(FunctionName, lpProcName) == 0)
         {
-            DWORD Index = *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfNameOrdinals + i * 4);
-            return (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfFunctions + i * 4);
+            WORD Index = *(WORD *)((ULONGLONG)hModule + EXPORT->AddressOfNameOrdinals + i * 4);
+            return (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfFunctions + Index * 4);
         }
     }
 
@@ -142,12 +142,6 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
                 {
                     ULONGLONG *HardCodingAddress = ImageBase + BASE_RELOCATION->VirtualAddress + (*Type[i]).Offset;
                     ULONGLONG HardCodingData = *HardCodingAddress;
-
-                    /*if (ReadProcessMemory(pi.hProcess, HardCodingAddress, &HardCodingData, 8, NULL) == NULL)
-                    {
-                        printf("[-] Reloc Read Failed!\n");
-                        continue;
-                    }*/
 
                     printf("[+] 0x%p : 0x%p -> ", HardCodingAddress, HardCodingData);
 
