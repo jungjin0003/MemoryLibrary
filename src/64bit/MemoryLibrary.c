@@ -10,7 +10,7 @@ FARPROC MemoryGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
         FunctionName = (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfNames + i * 4);
         if (strcmp(FunctionName, lpProcName) == 0)
         {
-            WORD Index = *(WORD *)((ULONGLONG)hModule + EXPORT->AddressOfNameOrdinals + i * 4);
+            WORD Index = *(WORD *)((ULONGLONG)hModule + EXPORT->AddressOfNameOrdinals + i * 2);
             return (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfFunctions + Index * 4);
         }
     }
@@ -30,7 +30,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
     ReadFile(hFile, Buffer, Size, &Size, NULL);
     printf("[+] File Opening!\n");*/
 
-    ULONGLONG RowImageBase = MemoryStream;
+    ULONGLONG RawImageBase = MemoryStream;
     IMAGE_DOS_HEADER* DOS = MemoryStream;
 
     if (DOS->e_magic != MZ)
@@ -39,7 +39,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
         return NULL;
     }
 
-    IMAGE_NT_HEADERS64* NT = RowImageBase + DOS->e_lfanew;
+    IMAGE_NT_HEADERS64* NT = RawImageBase + DOS->e_lfanew;
 
     if (NT->Signature != PE)
     {
@@ -71,7 +71,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
     for (int i = 0; i < NT->FileHeader.NumberOfSections; i++)
     {
         printf("[+] Section name : %s\n", SECTION[i]->Name);
-        memcpy(ImageBase + SECTION[i]->VirtualAddress, RowImageBase + SECTION[i]->PointerToRawData, SECTION[i]->SizeOfRawData);
+        memcpy(ImageBase + SECTION[i]->VirtualAddress, RawImageBase + SECTION[i]->PointerToRawData, SECTION[i]->SizeOfRawData);
         printf("[+] Section mapping OK..!\n");
     }
 
@@ -117,7 +117,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
         {
             if (NT->OptionalHeader.DataDirectory[5].VirtualAddress == SECTION[i]->VirtualAddress)
             {
-                BASE_RELOCATION = RowImageBase + SECTION[i]->PointerToRawData;
+                BASE_RELOCATION = RawImageBase + SECTION[i]->PointerToRawData;
                 break;
             }
         }
