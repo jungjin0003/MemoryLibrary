@@ -5,6 +5,12 @@ FARPROC MemoryGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
     IMAGE_EXPORT_DIRECTORY *EXPORT = (ULONGLONG)hModule + ((IMAGE_NT_HEADERS64 *)((ULONGLONG)hModule + ((IMAGE_DOS_HEADER *)hModule)->e_lfanew))->OptionalHeader.DataDirectory[0].VirtualAddress;
     LPSTR FunctionName = NULL;
 
+    if (lpProcName <= 0xFFFF)
+    {
+        WORD Index = (WORD)lpProcName - EXPORT->Base;
+        return (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfFunctions + Index * 4);
+    }
+
     for (int i = 0; i < EXPORT->NumberOfNames; i++)
     {
         FunctionName = (ULONGLONG)hModule + *(DWORD *)((ULONGLONG)hModule + EXPORT->AddressOfNames + i * 4);
@@ -20,16 +26,6 @@ FARPROC MemoryGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
 
 HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
 {
-    /*printf("[+] File Name : %s\n", DllName);
-
-    HANDLE hFile = CreateFileA(DllName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    DWORD Size = GetFileSize(hFile, NULL);
-    printf("[*] File Size : %d Byte\n", Size);
-
-    BYTE* Buffer = malloc(Size);
-    ReadFile(hFile, Buffer, Size, &Size, NULL);
-    printf("[+] File Opening!\n");*/
-
     ULONGLONG RawImageBase = MemoryStream;
     IMAGE_DOS_HEADER* DOS = MemoryStream;
 
