@@ -29,7 +29,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
     ULONGLONG RawImageBase = MemoryStream;
     IMAGE_DOS_HEADER* DOS = MemoryStream;
 
-    if (DOS->e_magic != MZ)
+    if (DOS->e_magic != IMAGE_DOS_SIGNATURE)
     {
         printf("[-] This memory stream is not executable file!\n");
         return NULL;
@@ -37,7 +37,7 @@ HMODULE MemoryLoadLibrary(BYTE* MemoryStream)
 
     IMAGE_NT_HEADERS64* NT = RawImageBase + DOS->e_lfanew;
 
-    if (NT->Signature != PE)
+    if (NT->Signature != IMAGE_NT_SIGNATURE)
     {
         printf("[-] This memory stream is not PE format\n");
         return NULL;
